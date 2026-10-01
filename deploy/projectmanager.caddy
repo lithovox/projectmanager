@@ -1,0 +1,13 @@
+# Site for projectmanager, served at https://projectmanager.lithovox.nl
+# Copy to /etc/caddy/apps/projectmanager.caddy on the server.
+
+projectmanager.lithovox.nl {
+	root * /var/www/apps/projectmanager/current
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+
+	# Vite assets are content-hashed, so they can be cached forever
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+}
