@@ -1,7 +1,9 @@
 import "./style.css";
 import { applyTranslations } from "./i18n";
 import { initTheme, initThemeToggle } from "./theme";
+import { AuthController } from "./authController";
 import { ProjectController } from "./projectController";
+import { LoginView } from "./views/loginView";
 import { MapView } from "./views/mapView";
 
 type ViewName = "map" | "tables";
@@ -10,6 +12,8 @@ const DEFAULT_VIEW: ViewName = "map";
 
 initTheme();
 applyTranslations();
+
+new AuthController(new LoginView(document.getElementById("login-screen") as HTMLElement));
 
 const mapView = new MapView(document.getElementById("map") as HTMLElement);
 new ProjectController(mapView);

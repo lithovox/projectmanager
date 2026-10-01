@@ -1,3 +1,4 @@
+import { Cpt, type CptData } from "./cpt";
 import type { RdPoint } from "./rd";
 import { REFERENCE_LINE_COLORS, ReferenceLine, type ReferenceLineData } from "./referenceLine";
 import type { MapViewState } from "./views/mapView";
@@ -8,6 +9,7 @@ export interface ProjectFile {
   version: 1;
   map: MapViewState;
   referenceLines: ReferenceLineData[];
+  cpts: CptData[];
 }
 
 function isMapViewState(value: unknown): value is MapViewState {
@@ -31,7 +33,9 @@ export function isProjectFile(value: unknown): value is ProjectFile {
     isMapViewState(p.map) &&
     // Files saved before reference lines existed have no `referenceLines`.
     (p.referenceLines === undefined ||
-      (Array.isArray(p.referenceLines) && p.referenceLines.every(ReferenceLine.isData)))
+      (Array.isArray(p.referenceLines) && p.referenceLines.every(ReferenceLine.isData))) &&
+    // Files saved before CPTs existed have no `cpts`.
+    (p.cpts === undefined || (Array.isArray(p.cpts) && p.cpts.every(Cpt.isData)))
   );
 }
 
@@ -44,8 +48,10 @@ export type NameError = "empty" | "taken";
 
 // A project's contents, and the rules that span its reference lines: names
 // are unique, and (once there are lines) exactly one is the chainage line.
+// CPTs are unique by BRO id.
 export class Project {
   private lines: ReferenceLine[] = [];
+  private cptsById = new Map<string, Cpt>();
 
   get referenceLines(): readonly ReferenceLine[] {
     return this.lines;
@@ -117,12 +123,33 @@ export class Project {
     );
   }
 
+  get cpts(): readonly Cpt[] {
+    return [...this.cptsById.values()];
+  }
+
+  hasCpt(id: string): boolean {
+    return this.cptsById.has(id);
+  }
+
+  /** Adds a CPT, replacing any CPT with the same id. */
+  addCpt(data: CptData): Cpt {
+    const cpt = new Cpt(data);
+    this.cptsById.set(cpt.id, cpt);
+    return cpt;
+  }
+
   clear(): void {
     this.lines = [];
+    this.cptsById.clear();
   }
 
   toFile(map: MapViewState): ProjectFile {
-    return { version: 1, map, referenceLines: this.lines.map((line) => line.toData()) };
+    return {
+      version: 1,
+      map,
+      referenceLines: this.lines.map((line) => line.toData()),
+      cpts: this.cpts.map((cpt) => cpt.toData()),
+    };
   }
 
   /** Replaces this project's contents with the (validated) file's. */
@@ -140,5 +167,7 @@ export class Project {
       (line) => line.isChainageLine && this.hasReferenceLine(line.name),
     );
     if (flagged) this.setChainageLine(flagged.name);
+
+    for (const cpt of file.cpts ?? []) this.addCpt(cpt);
   }
 }

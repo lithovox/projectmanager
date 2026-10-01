@@ -331,6 +331,27 @@ p {
   gap: 10px;
 }
 
+/* ============ Login ============ */
+/* Opaque, and above everything (incl. Leaflet controls), so nothing of the app shows. */
+.modal-overlay.login-screen {
+  background: var(--bg-page);
+  z-index: 2000;
+}
+
+.login-brand {
+  margin-bottom: 18px;
+}
+
+.user-email {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0 4px;
+}
+
 /* ============ Body: left menu + content ============ */
 .body {
   flex: 1;
@@ -482,6 +503,12 @@ p {
 
 .leaflet-tooltip-top.chainage-label::before {
   border-top-color: var(--bg-card);
+}
+
+/* CPT locations on the map. */
+.leaflet-interactive.cpt-marker {
+  fill: var(--text-primary);
+  stroke: var(--bg-card);
 }
 
 /* ============ Referenceline dialog ============ */

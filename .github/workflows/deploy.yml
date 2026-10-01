@@ -27,7 +27,10 @@ jobs:
           cache: npm
 
       - run: npm ci
+      # .env.local is not committed, so the production API URL is set here
       - run: npm run build
+        env:
+          VITE_API_URL: https://api.lithovox.nl
 
       - name: Configure SSH
         run: |

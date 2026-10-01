@@ -1,5 +1,6 @@
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
+import type { Cpt } from "../cpt";
 import { formatMetres } from "../i18n";
 import type { ReferenceLine } from "../referenceLine";
 import { rdToLatLng } from "../rd";
@@ -10,6 +11,8 @@ const LINE_WEIGHT = 3;
 const CHAINAGE_LINE_WEIGHT = 5;
 const HIGHLIGHT_WEIGHT = 7;
 const HIT_WEIGHT = 16;
+// Radius (px) of a CPT dot.
+const CPT_RADIUS = 5;
 
 function escapeHtml(text: string): string {
   const div = document.createElement("div");
@@ -64,6 +67,7 @@ export class MapView {
   private map: L.Map;
   private basemap: L.LayerGroup;
   private referenceLineLayer = L.layerGroup();
+  private cptLayer = L.layerGroup();
   private referenceLinePolylines = new Map<string, L.Polyline>();
   private chainageLineName: string | null = null;
   private referenceLineClickHandler: ((name: string) => void) | null = null;
@@ -91,6 +95,7 @@ export class MapView {
       this.basemap = this.createBasemap(theme).addTo(this.map);
     });
     this.referenceLineLayer.addTo(this.map);
+    this.cptLayer.addTo(this.map);
 
     this.enableRightButtonPan(container);
   }
@@ -140,6 +145,17 @@ export class MapView {
         this.addChainageMarker(latLngs[0], line.color, formatMetres(line.start.chainage));
         this.addChainageMarker(latLngs[latLngs.length - 1], line.color, formatMetres(line.end.chainage));
       }
+    }
+  }
+
+  /** Replaces all CPT locations drawn on the map. */
+  setCpts(cpts: readonly Cpt[]): void {
+    this.cptLayer.clearLayers();
+    for (const cpt of cpts) {
+      // Colours come from the .cpt-marker CSS rule, so they follow the theme.
+      L.circleMarker([cpt.lat, cpt.lon], { radius: CPT_RADIUS, weight: 2, fillOpacity: 1, className: "cpt-marker" })
+        .bindTooltip(escapeHtml(cpt.id), { direction: "top", offset: [0, -CPT_RADIUS] })
+        .addTo(this.cptLayer);
     }
   }
 

@@ -31,7 +31,23 @@ export const en = {
   "shapefile.mismatchedFiles": "The .shp, .shx and .dbf files must belong to the same shapefile.",
   "shapefile.unreadable": "Could not read that shapefile.",
   "units.metres": "{value} m",
+  "bro.downloadCpts": "Download BRO CPTs",
+  "bro.downloadCptsTitle": "Download CPTs from the BRO (Basisregistratie Ondergrond)",
+  "bro.downloadingCptList": "Searching CPTs…",
+  "bro.downloadingCpts": "Downloading CPTs {done}/{total}",
+  "bro.cptListFailed": "Could not get the list of CPTs from the BRO.",
+  "bro.noCptsFound": "No CPTs found along the reference lines.",
+  "bro.cptsFailed": "{failed} of {total} CPTs could not be downloaded.",
   "shapefile.noLine": "The shapefile has no usable line geometry.",
+  "auth.title": "Log in",
+  "auth.email": "Email",
+  "auth.password": "Password",
+  "auth.login": "Log in",
+  "auth.logout": "Log out",
+  "auth.confirmLogout": "Log out? Unsaved changes to the project will be lost.",
+  "auth.missingCredentials": "Enter your email and password.",
+  "auth.invalidCredentials": "Incorrect email or password.",
+  "auth.unreachable": "Could not reach the server. Try again later.",
 };
 
 export type MessageKey = keyof typeof en;
