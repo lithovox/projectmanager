@@ -1,5 +1,4 @@
-import { endSession, getSession } from "./auth";
-import { apiUrl } from "./config";
+import { apiJson } from "./apiClient";
 import type { RdPoint } from "./rd";
 
 /** Location of a CPT as returned by the metadata search. */
@@ -15,33 +14,12 @@ interface CptMetadataResponse {
   objects: { bro_id: string; x: number; y: number; lat: number; lon: number }[];
 }
 
-// POSTs as the logged-in user. If there is no valid session, or the API
-// rejects the token, the session ends (which brings up the login screen).
-async function post(path: string, body?: unknown): Promise<Response> {
-  const session = getSession();
-  if (!session) {
-    endSession();
-    throw new Error(`${path}: not logged in`);
-  }
-  const response = await fetch(apiUrl(path), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.token}`,
-      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (response.status === 401) endSession();
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
-  return response;
-}
-
 /** CPTs within `offset` metres of the polyline (RD coordinates). */
 export async function fetchCptMetadataByPolyline(
   points: readonly RdPoint[],
   offset: number,
 ): Promise<CptMetadata[]> {
-  const response = await post("/api/v1/bro/cpt_metadata/by_polyline", {
+  const response = await apiJson("/api/v1/bro/cpt_metadata/by_polyline", "POST", {
     points: points.map((p) => [p.x, p.y]),
     offset,
   });
@@ -51,6 +29,6 @@ export async function fetchCptMetadataByPolyline(
 
 /** The CPT's BRO XML file. */
 export async function fetchCptXml(id: string): Promise<string> {
-  const response = await post(`/api/v1/bro/cpt/${encodeURIComponent(id)}`);
+  const response = await apiJson(`/api/v1/bro/cpt/${encodeURIComponent(id)}`, "POST");
   return response.text();
 }

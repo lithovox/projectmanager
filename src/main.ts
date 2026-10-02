@@ -5,9 +5,11 @@ import { AuthController } from "./authController";
 import { ProjectController } from "./projectController";
 import { LoginView } from "./views/loginView";
 import { MapView } from "./views/mapView";
+import { TablesView } from "./views/tablesView";
+import { Scene3DView } from "./views/scene3dView";
 
-type ViewName = "map" | "tables";
-const VIEWS: ViewName[] = ["map", "tables"];
+type ViewName = "map" | "tables" | "3d";
+const VIEWS: ViewName[] = ["map", "tables", "3d"];
 const DEFAULT_VIEW: ViewName = "map";
 
 initTheme();
@@ -16,7 +18,9 @@ applyTranslations();
 new AuthController(new LoginView(document.getElementById("login-screen") as HTMLElement));
 
 const mapView = new MapView(document.getElementById("map") as HTMLElement);
-new ProjectController(mapView);
+const tablesView = new TablesView(document.getElementById("tables") as HTMLElement);
+const scene3dView = new Scene3DView(document.getElementById("scene3d") as HTMLElement);
+new ProjectController(mapView, tablesView, scene3dView);
 
 const themeSwitch = document.getElementById("theme-switch-btn") as HTMLButtonElement | null;
 if (themeSwitch) initThemeToggle(themeSwitch);
@@ -34,6 +38,7 @@ function showView(view: ViewName): void {
     item.classList.toggle("active", item.dataset.view === view);
   });
   if (view === "map") mapView.invalidateSize();
+  scene3dView.setActive(view === "3d");
 }
 
 window.addEventListener("hashchange", () => showView(currentView()));

@@ -24,6 +24,7 @@
   --accent-gradient: linear-gradient(135deg, var(--color-teal) 0%, var(--color-navy) 100%);
   --danger-color: #c0392b;
   --danger-bg: #fbe4e1;
+  --marker-unassigned: #8d979b;
 
   --topbar-height: 64px;
   --sidebar-width: 260px;
@@ -45,6 +46,7 @@
   --color-teal-soft: #17343a;
   --danger-color: #ff8a75;
   --danger-bg: #432420;
+  --marker-unassigned: #9aa4a8;
 }
 
 * {
@@ -371,6 +373,28 @@ p {
   z-index: 10;
 }
 
+/* A titled group of menu entries. */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-section + .sidebar-section {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sidebar-heading {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* Left-aligned, full-width menu entry. */
 .sidebar-btn {
   width: 100%;
@@ -447,8 +471,613 @@ p {
   cursor: grabbing;
 }
 
-.placeholder {
+/* ============ Soil profile popup & editor ============ */
+.soil-profile-popup .leaflet-popup-content-wrapper,
+.soil-profile-popup .leaflet-popup-tip {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 4px 14px rgba(15, 53, 73, 0.25);
+}
+
+.soil-profile-popup .leaflet-popup-content-wrapper {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.soil-profile-popup .leaflet-popup-content {
+  margin: 10px 12px;
+}
+
+.soil-profile-popup a.leaflet-popup-close-button {
+  color: var(--text-secondary);
+}
+
+.soil-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.soil-popup-actions .toolbar-btn {
+  height: 30px;
+  padding: 0 14px;
+}
+
+.modal-card.modal-card-large {
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.soil-editor {
+  display: flex;
+  gap: 24px;
+  min-height: 0;
+  flex: 1;
+}
+
+.soil-editor-layers {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.soil-editor-layers .table-scroll {
+  max-height: 55vh;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.soil-editor-table td {
+  padding: 4px 8px;
+}
+
+.soil-editor-table input,
+.soil-editor-table select {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.soil-editor-table input {
+  width: 90px;
+  font-family: var(--mono);
+  text-align: right;
+}
+
+.soil-editor-table select {
+  flex: 1;
+  min-width: 0;
+}
+
+.soil-editor-table input:focus,
+.soil-editor-table select:focus {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px var(--color-teal-soft);
+}
+
+.soil-editor-table tr.invalid input {
+  border-color: var(--danger-color);
+}
+
+.soil-editor-table tr.invalid td {
+  background: var(--danger-bg);
+}
+
+.soil-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soil-select .soil-swatch {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+.soil-editor-preview {
+  flex: 0 0 280px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  transition: opacity 0.15s ease;
+}
+
+.soil-editor-preview svg {
+  width: 100%;
+  height: auto;
+}
+
+.soil-editor-preview.stale {
+  opacity: 0.4;
+}
+
+.modal-action-left {
+  margin-right: auto;
+}
+
+@media (max-width: 700px) {
+  .soil-editor {
+    flex-direction: column;
+  }
+
+  .soil-editor-preview {
+    flex-basis: auto;
+  }
+}
+
+/* ============ Project name, save state & project manager ============ */
+.project-name {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* A dot after the name while there are unsaved changes. */
+.project-name.unsaved::after {
+  content: " \25CF";
+  color: var(--danger-color);
+}
+
+.toolbar-btn.unsaved {
+  position: relative;
+  background: var(--color-teal-soft);
+  color: var(--color-teal);
+  box-shadow: inset 0 0 0 1px var(--color-teal);
+}
+
+.toolbar-btn.unsaved::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger-color);
+  box-shadow: 0 0 0 2px var(--bg-card);
+}
+
+.toolbar-btn.saving {
+  cursor: progress;
+}
+
+.modal-card.project-manager {
+  max-width: 720px;
+}
+
+.project-manager-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.project-manager-header h2 {
+  margin-bottom: 2px;
+}
+
+.project-manager-new {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.project-manager-new input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.project-manager-new input:focus {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px var(--color-teal-soft);
+}
+
+.project-manager-list {
+  max-height: 50vh;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.project-manager-list tbody tr {
+  cursor: default;
+}
+
+.project-manager-list tr.current td {
+  background: var(--color-teal-soft);
+}
+
+.project-manager-name {
+  font-weight: 600;
+}
+
+.icon-btn[hidden] {
+  display: none;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* While a project action runs. */
+.modal-overlay.busy .modal-card {
+  cursor: progress;
+}
+
+.modal-overlay.busy .modal-card button,
+.modal-overlay.busy .modal-card input {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ============ 3D ============ */
+.scene3d,
+.scene3d-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene3d-canvas canvas {
+  display: block;
+}
+
+.scene3d-toolbar,
+.scene3d-legend,
+.scene3d-hint,
+.scene3d-attribution,
+.scene3d-tooltip,
+.scene3d-empty {
+  position: absolute;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(15, 53, 73, 0.15);
+}
+
+.scene3d-toolbar {
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 12px;
+}
+
+.scene3d-exaggeration {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.scene3d-exaggeration input {
+  width: 140px;
+  accent-color: var(--color-teal);
+}
+
+.scene3d-exaggeration output {
+  min-width: 2.5em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene3d-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.scene3d-map-toggle input {
+  margin: 0;
+  accent-color: var(--color-teal);
+}
+
+/* Toggle button: filled while Full 3D is on. */
+.scene3d-full3d[aria-pressed='true'],
+.scene3d-full3d[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.scene3d-status {
+  display: none;
+  padding-right: 6px;
+  color: var(--text-secondary);
+}
+
+.scene3d-status.visible {
+  display: inline;
+}
+
+.scene3d-attribution {
+  display: none;
+  right: 12px;
+  bottom: 12px;
+  padding: 2px 8px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+
+.scene3d-attribution.visible {
+  display: block;
+}
+
+.scene3d-legend {
+  display: none;
+  top: 12px;
+  right: 12px;
+  max-height: calc(100% - 64px);
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.scene3d-legend.visible {
+  display: block;
+}
+
+.scene3d-legend h4 {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.scene3d-legend ul {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.scene3d-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.scene3d-swatch {
+  flex: none;
+  border: 1px solid var(--border-color);
+}
+
+.scene3d-swatch.line {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.scene3d-swatch.soil {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.scene3d-hint {
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.scene3d-tooltip {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.scene3d-tooltip.visible {
+  display: flex;
+}
+
+.scene3d-tooltip span {
+  color: var(--text-secondary);
+}
+
+.scene3d-empty {
+  display: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 12px 18px;
+  color: var(--text-secondary);
+}
+
+.scene3d-empty.visible {
+  display: block;
+}
+
+/* ============ Tables ============ */
+.view-tables.active {
+  overflow: auto;
+}
+
+.tables {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   padding: 24px;
+}
+
+.table-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-card-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.table-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-teal-soft);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.table-scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 4px 12px;
+  border-top: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-teal-soft);
+}
+
+.data-table .numeric {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th.numeric {
+  font-family: inherit;
+}
+
+.data-table .table-empty {
+  padding: 16px 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.table-swatch {
+  display: inline-block;
+  width: 14px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.soil-color-input {
+  display: block;
+  width: 36px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.soil-color-input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.soil-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.row-actions {
+  width: 1%;
+  text-align: right;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.icon-btn:hover {
+  background: var(--color-teal-soft);
+  color: var(--text-primary);
+}
+
+.icon-btn.btn-danger:hover {
+  background: var(--danger-bg);
+  color: var(--danger-color);
 }
 
 /* ============ Leaflet theming ============ */
@@ -488,6 +1117,53 @@ p {
   border-color: var(--text-secondary);
 }
 
+/* Show/hide buttons for the CPT and soil profile layers. */
+.leaflet-bar.layer-toggles {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.layer-toggle:hover {
+  background: var(--color-teal-soft);
+}
+
+.layer-toggle svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.layer-toggle[aria-pressed="false"] {
+  color: var(--text-secondary);
+}
+
+.layer-toggle[aria-pressed="false"] span {
+  text-decoration: line-through;
+}
+
+.layer-toggle[aria-pressed="false"] svg {
+  opacity: 0.3;
+}
+
 /* Start/end chainage labels on reference lines. */
 .leaflet-tooltip.chainage-label {
   padding: 2px 6px;
@@ -511,6 +1187,77 @@ p {
   stroke: var(--bg-card);
 }
 
+/* Height raster extents on the map. */
+.leaflet-interactive.height-raster-extent {
+  stroke: var(--color-teal);
+  stroke-dasharray: 6 4;
+  fill: var(--color-teal);
+  fill-opacity: 0.08;
+}
+
+/* Soil profile locations on the map. */
+.leaflet-interactive.soil-profile-marker {
+  stroke: var(--bg-card);
+}
+
+/* Unassigned profiles are grey; assigned ones get their referenceline's colour. */
+.leaflet-interactive.soil-profile-marker:not(.assigned) {
+  fill: var(--marker-unassigned);
+}
+
+.soil-chart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8rem;
+}
+
+.soil-chart-source {
+  margin-bottom: 4px;
+}
+
+.soil-chart-header span,
+.soil-chart-source,
+.soil-chart-unit {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.soil-chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.soil-chart text {
+  dominant-baseline: middle;
+  font-family: var(--font-family);
+  font-size: 10px;
+}
+
+.soil-chart .chart-level {
+  fill: var(--text-secondary);
+  font-family: var(--mono);
+  text-anchor: end;
+}
+
+.soil-chart .chart-soil {
+  fill: var(--text-primary);
+}
+
+.soil-chart .chart-outline {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1;
+}
+
+.soil-chart .chart-tick,
+.soil-chart .chart-leader {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 0.75;
+}
+
 /* ============ Referenceline dialog ============ */
 .modal-title-row {
   display: flex;
@@ -523,6 +1270,10 @@ p {
   height: 6px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+.modal-checkbox[hidden] {
+  display: none;
 }
 
 .modal-checkbox {

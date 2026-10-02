@@ -30,5 +30,10 @@ map. Run with `npm run dev`; `npm run build` type-checks (`tsc`) and builds.
   every colour must work in both the light and the dark theme.
 - **Saved projects:** keep older project files loadable; make new fields
   optional when validating and fill in defaults when loading.
+- **Persistence:** projects live in the LithoVox API database (per user, see
+  `src/projectApi.ts`); `ProjectSync` (`src/projectSync.ts`) tracks the open
+  project and unsaved changes. Nothing is sent to the database except by the
+  Save button. Height raster GeoTIFFs are stored separately and referred to
+  from the project file by `id`.
 - `tsconfig` has `erasableSyntaxOnly`: no constructor parameter properties or
   enums.

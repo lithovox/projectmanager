@@ -6,6 +6,14 @@ export interface ReferenceLinePoint extends RdPoint {
   chainage: number;
 }
 
+/** Where a point lands when projected perpendicularly onto a line. */
+export interface LineProjection {
+  /** Distance in metres from the point to the line. */
+  distance: number;
+  /** Chainage (metres along the line) of the closest point on the line. */
+  chainage: number;
+}
+
 /** How a reference line is stored in a project file. */
 export interface ReferenceLineData {
   name: string;
@@ -73,6 +81,23 @@ export class ReferenceLine {
   /** Total length in metres (the chainage of the last point). */
   get length(): number {
     return this.end.chainage;
+  }
+
+  /** The closest point on the line to `point` (both in RD). */
+  project(point: RdPoint): LineProjection {
+    let best: LineProjection = { distance: Infinity, chainage: 0 };
+    for (let i = 1; i < this.points.length; i++) {
+      const a = this.points[i - 1];
+      const b = this.points[i];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const lengthSq = dx * dx + dy * dy;
+      // Fraction along the segment of the perpendicular foot, clamped to the segment.
+      const f = lengthSq === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSq));
+      const distance = Math.hypot(point.x - (a.x + f * dx), point.y - (a.y + f * dy));
+      if (distance < best.distance) best = { distance, chainage: a.chainage + f * (b.chainage - a.chainage) };
+    }
+    return best;
   }
 
   toData(): ReferenceLineData {

@@ -30,15 +30,21 @@
             </svg>
             <span data-i18n="nav.tables"></span>
           </a>
+          <a class="view-tab" href="#/3d" data-view="3d">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+            <span data-i18n="nav.scene3d"></span>
+          </a>
         </nav>
 
         <div class="topbar-actions">
-          <button class="toolbar-btn btn-danger" id="new-project-btn" data-i18n-title="project.new">
+          <span class="project-name" id="project-name"></span>
+          <button class="toolbar-btn" id="new-project-btn" data-i18n-title="project.new">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" />
             </svg>
           </button>
-          <div class="toolbar-divider"></div>
           <button class="toolbar-btn" id="save-project-btn" data-i18n-title="project.save">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
@@ -46,10 +52,9 @@
           </button>
           <button class="toolbar-btn" id="load-project-btn" data-i18n-title="project.load">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </button>
-          <input type="file" id="project-input" accept="application/json,.json" hidden />
           <div class="toolbar-divider"></div>
           <span class="user-email" id="user-email"></span>
           <button type="button" class="toolbar-btn" id="logout-btn" data-i18n-title="auth.logout">
@@ -69,19 +74,54 @@
       <div class="body">
         <!-- Left menu: shared by all views. -->
         <aside class="sidebar" id="sidebar">
-          <label class="toolbar-btn file-btn sidebar-btn" data-i18n-title="referenceLine.uploadTitle">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
-            </svg>
-            <span data-i18n="referenceLine.upload"></span>
-            <input type="file" id="referenceline-input" accept=".shp,.shx,.dbf" multiple hidden />
-          </label>
-          <button type="button" class="toolbar-btn sidebar-btn" id="download-bro-cpts-btn" data-i18n-title="bro.downloadCptsTitle">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="2" x2="12" y2="14" /><polyline points="7 9 12 14 17 9" /><line x1="3" y1="18" x2="21" y2="18" /><line x1="6" y1="22" x2="18" y2="22" />
-            </svg>
-            <span data-i18n="bro.downloadCpts"></span>
-          </button>
+          <section class="sidebar-section">
+            <h3 class="sidebar-heading" data-i18n="menu.upload"></h3>
+            <label class="toolbar-btn file-btn sidebar-btn" data-i18n-title="referenceLine.uploadTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+              </svg>
+              <span data-i18n="referenceLine.upload"></span>
+              <input type="file" id="referenceline-input" accept=".shp,.shx,.dbf" multiple hidden />
+            </label>
+            <label class="toolbar-btn file-btn sidebar-btn" data-i18n-title="geoscanner.uploadTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
+              </svg>
+              <span data-i18n="geoscanner.upload"></span>
+              <input type="file" id="geoscanner-input" accept=".json,application/json" hidden />
+            </label>
+            <label class="toolbar-btn file-btn sidebar-btn" data-i18n-title="heightData.uploadTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2 20 8 10 12 15 16 7 22 20" /><line x1="2" y1="20" x2="22" y2="20" />
+              </svg>
+              <span data-i18n="heightData.upload"></span>
+              <input type="file" id="height-data-input" accept=".tif,.tiff,image/tiff" multiple hidden />
+            </label>
+          </section>
+          <section class="sidebar-section">
+            <h3 class="sidebar-heading" data-i18n="menu.bro"></h3>
+            <button type="button" class="toolbar-btn sidebar-btn" id="download-bro-cpts-btn" data-i18n-title="bro.downloadCptsTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="14" /><polyline points="7 9 12 14 17 9" /><line x1="3" y1="18" x2="21" y2="18" /><line x1="6" y1="22" x2="18" y2="22" />
+              </svg>
+              <span data-i18n="bro.downloadCpts"></span>
+            </button>
+          </section>
+          <section class="sidebar-section">
+            <h3 class="sidebar-heading" data-i18n="menu.analysis"></h3>
+            <button type="button" class="toolbar-btn sidebar-btn" id="assign-soil-profiles-btn" data-i18n-title="soilProfile.assignToClosestLineTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="20" x2="21" y2="20" /><circle cx="12" cy="6" r="3" /><line x1="12" y1="9" x2="12" y2="17" /><polyline points="9 14 12 17 15 14" />
+              </svg>
+              <span data-i18n="soilProfile.assignToClosestLine"></span>
+            </button>
+            <button type="button" class="toolbar-btn sidebar-btn" id="reset-assignments-btn" data-i18n-title="soilProfile.resetAssignmentsTitle">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+              <span data-i18n="soilProfile.resetAssignments"></span>
+            </button>
+          </section>
         </aside>
 
         <main class="content">
@@ -90,10 +130,11 @@
           </section>
 
           <section class="view view-tables" id="view-tables">
-            <div class="placeholder">
-              <h2 data-i18n="tables.title"></h2>
-              <p class="hint" data-i18n="tables.comingSoon"></p>
-            </div>
+            <div class="tables" id="tables"></div>
+          </section>
+
+          <section class="view view-3d" id="view-3d">
+            <div class="scene3d" id="scene3d"></div>
           </section>
         </main>
       </div>
@@ -122,6 +163,94 @@
           <button type="submit" class="toolbar-btn primary-btn" data-i18n="common.save"></button>
         </div>
       </form>
+    </div>
+
+    <!-- Opened by the "Assign To Closest Line" button. -->
+    <div id="assign-soil-profiles-modal" class="modal-overlay">
+      <form id="assign-soil-profiles-modal-form" class="modal-card" novalidate>
+        <h2 id="assign-soil-profiles-modal-title"></h2>
+        <label class="modal-checkbox" id="assign-soil-profiles-modal-auto-row">
+          <input type="checkbox" id="assign-soil-profiles-modal-auto" />
+          <span data-i18n="geoscanner.autoAssign"></span>
+        </label>
+        <p class="hint" data-i18n="soilProfile.assignDialogHint"></p>
+        <div class="modal-field">
+          <label for="assign-soil-profiles-modal-distance" data-i18n="soilProfile.maxDistanceLabel"></label>
+          <input type="number" id="assign-soil-profiles-modal-distance" min="0" step="any" />
+          <p class="modal-error" id="assign-soil-profiles-modal-error" role="alert"></p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="assign-soil-profiles-modal-cancel" class="toolbar-btn" data-i18n="common.cancel"></button>
+          <button type="submit" class="toolbar-btn primary-btn" id="assign-soil-profiles-modal-submit"></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Soil profile layer editor: opened from the Tables page and from a profile's popup on the map. -->
+    <div id="soil-profile-modal" class="modal-overlay">
+      <form id="soil-profile-modal-form" class="modal-card modal-card-large" novalidate>
+        <h2 data-i18n="soilProfileEditor.title"></h2>
+        <p class="hint" id="soil-profile-modal-subtitle"></p>
+        <div class="soil-editor">
+          <div class="soil-editor-layers">
+            <div class="table-scroll">
+              <table class="data-table soil-editor-table">
+                <thead>
+                  <tr>
+                    <th class="numeric">#</th>
+                    <th data-i18n="tables.top"></th>
+                    <th data-i18n="tables.bottom"></th>
+                    <th data-i18n="soilProfileEditor.soil"></th>
+                  </tr>
+                </thead>
+                <tbody id="soil-profile-modal-rows"></tbody>
+              </table>
+            </div>
+            <p class="modal-error" id="soil-profile-modal-error" role="alert"></p>
+          </div>
+          <div class="soil-editor-preview" id="soil-profile-modal-preview"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="soil-profile-modal-reset" class="toolbar-btn modal-action-left" data-i18n="soilProfileEditor.reset"></button>
+          <button type="button" id="soil-profile-modal-cancel" class="toolbar-btn" data-i18n="common.cancel"></button>
+          <button type="submit" id="soil-profile-modal-save" class="toolbar-btn primary-btn" data-i18n="common.save"></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Project management: shown after logging in, and by the New / Open project buttons. -->
+    <div id="project-manager-modal" class="modal-overlay">
+      <div class="modal-card modal-card-large project-manager">
+        <div class="project-manager-header">
+          <div>
+            <h2 data-i18n="projectManager.title"></h2>
+            <p class="hint" id="project-manager-user"></p>
+          </div>
+          <button type="button" class="icon-btn" id="project-manager-close" data-i18n-title="common.close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <form id="project-manager-new" class="project-manager-new" novalidate>
+          <input type="text" id="project-manager-name" autocomplete="off" maxlength="200" />
+          <button type="submit" class="toolbar-btn primary-btn" data-i18n="projectManager.create"></button>
+        </form>
+        <p class="modal-error" id="project-manager-error" role="alert"></p>
+        <div class="table-scroll project-manager-list">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="tables.name"></th>
+                <th data-i18n="projectManager.lastSaved"></th>
+                <th class="numeric" data-i18n="tables.size"></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="project-manager-rows"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Covers the app until the user is logged in. -->

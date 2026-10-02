@@ -1,10 +1,16 @@
 import "leaflet/dist/leaflet.css";
 import * as L from "leaflet";
+import { BASEMAPS } from "../basemaps";
 import type { Cpt } from "../cpt";
-import { formatMetres } from "../i18n";
+import type { HeightRaster } from "../heightRaster";
+import { formatMetres, t } from "../i18n";
+import type { MessageKey } from "../i18n/en";
 import type { ReferenceLine } from "../referenceLine";
 import { rdToLatLng } from "../rd";
+import type { Soil } from "../soil";
+import type { SoilProfile } from "../soilProfile";
 import { getTheme, onThemeChange, type Theme } from "../theme";
+import { soilProfileChart } from "./soilProfileChart";
 
 // Stroke widths (px) of reference lines; the chainage line is drawn heavier.
 const LINE_WEIGHT = 3;
@@ -13,6 +19,8 @@ const HIGHLIGHT_WEIGHT = 7;
 const HIT_WEIGHT = 16;
 // Radius (px) of a CPT dot.
 const CPT_RADIUS = 5;
+// Radius (px) of a soil profile dot.
+const SOIL_PROFILE_RADIUS = 5;
 
 function escapeHtml(text: string): string {
   const div = document.createElement("div");
@@ -25,39 +33,6 @@ const NL_CENTER: L.LatLngExpression = [52.2, 5.3];
 const NL_ZOOM = 8;
 const MAX_ZOOM = 19;
 
-const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
-
-interface BasemapLayer {
-  url: string;
-  attribution: string;
-  maxNativeZoom: number;
-}
-
-// Esri basemaps: worldwide coverage, no API key. The dark canvas has its
-// labels in a separate transparent layer drawn on top of the base.
-const BASEMAPS: Record<Theme, BasemapLayer[]> = {
-  light: [
-    {
-      url: `${ESRI}/World_Topo_Map/MapServer/tile/{z}/{y}/{x}`,
-      attribution:
-        "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, FAO, NOAA, USGS, &copy; OpenStreetMap contributors, and the GIS User Community",
-      maxNativeZoom: 19,
-    },
-  ],
-  dark: [
-    {
-      url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
-      attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
-      maxNativeZoom: 16,
-    },
-    {
-      url: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
-      attribution: "",
-      maxNativeZoom: 16,
-    },
-  ],
-};
-
 export interface MapViewState {
   center: [number, number];
   zoom: number;
@@ -66,11 +41,15 @@ export interface MapViewState {
 export class MapView {
   private map: L.Map;
   private basemap: L.LayerGroup;
+  private heightRasterLayer = L.featureGroup();
+  private heightRasterPolygons = new Map<string, L.Polygon>();
   private referenceLineLayer = L.layerGroup();
   private cptLayer = L.layerGroup();
+  private soilProfileLayer = L.featureGroup();
   private referenceLinePolylines = new Map<string, L.Polyline>();
   private chainageLineName: string | null = null;
   private referenceLineClickHandler: ((name: string) => void) | null = null;
+  private soilProfileEditHandler: ((profile: SoilProfile) => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.map = L.map(container, {
@@ -94,8 +73,12 @@ export class MapView {
       this.basemap.remove();
       this.basemap = this.createBasemap(theme).addTo(this.map);
     });
+    // Raster extents go first, so lines and points are drawn on top of them.
+    this.heightRasterLayer.addTo(this.map);
     this.referenceLineLayer.addTo(this.map);
     this.cptLayer.addTo(this.map);
+    this.soilProfileLayer.addTo(this.map);
+    this.addLayerToggles();
 
     this.enableRightButtonPan(container);
   }
@@ -116,6 +99,11 @@ export class MapView {
   /** Called with the line's name when the user clicks a reference line. */
   onReferenceLineClick(handler: (name: string) => void): void {
     this.referenceLineClickHandler = handler;
+  }
+
+  /** Called when the user clicks "Edit" in a soil profile's popup. */
+  onSoilProfileEdit(handler: (profile: SoilProfile) => void): void {
+    this.soilProfileEditHandler = handler;
   }
 
   /** Replaces all reference lines drawn on the map. */
@@ -159,6 +147,78 @@ export class MapView {
     }
   }
 
+  /**
+   * Replaces all soil profile locations drawn on the map; `soils` gives the
+   * layer colours of the chart in the popup a click on a profile opens. A
+   * profile assigned to a reference line (`lineOf`) is drawn in that line's
+   * colour.
+   */
+  setSoilProfiles(
+    profiles: readonly SoilProfile[],
+    soils: readonly Soil[],
+    lineOf: (profile: SoilProfile) => ReferenceLine | undefined,
+  ): void {
+    this.soilProfileLayer.clearLayers();
+    const colors = new Map(soils.map((soil) => [soil.name, soil.color]));
+    for (const profile of profiles) {
+      const line = lineOf(profile);
+      // Unassigned profiles get their (grey) fill from the .soil-profile-marker
+      // CSS rule, so it follows the theme; assigned ones use their line's colour.
+      L.circleMarker(rdToLatLng(profile.rd), {
+        radius: SOIL_PROFILE_RADIUS,
+        weight: 2,
+        fillOpacity: 1,
+        fillColor: line?.color,
+        className: line ? "soil-profile-marker assigned" : "soil-profile-marker",
+      })
+        .bindPopup(() => this.soilProfilePopup(profile, colors, line?.name), {
+          offset: [0, -SOIL_PROFILE_RADIUS],
+          className: "soil-profile-popup",
+          maxWidth: 400,
+        })
+        .addTo(this.soilProfileLayer);
+    }
+  }
+
+  // The profile's chart with an "Edit" button.
+  private soilProfilePopup(profile: SoilProfile, colors: ReadonlyMap<string, string>, lineName?: string): HTMLElement {
+    const content = document.createElement("div");
+    content.innerHTML = soilProfileChart(profile, colors, lineName);
+    const actions = L.DomUtil.create("div", "soil-popup-actions", content);
+    const button = L.DomUtil.create("button", "toolbar-btn primary-btn", actions);
+    button.type = "button";
+    button.textContent = t("soilProfileEditor.edit");
+    button.addEventListener("click", () => {
+      this.map.closePopup();
+      this.soilProfileEditHandler?.(profile);
+    });
+    return content;
+  }
+
+  /** Replaces all height raster extents drawn on the map. */
+  setHeightRasters(rasters: readonly HeightRaster[]): void {
+    this.heightRasterLayer.clearLayers();
+    this.heightRasterPolygons.clear();
+    for (const raster of rasters) {
+      // Colours come from the .height-raster-extent CSS rule, so they follow the theme.
+      const polygon = L.polygon(raster.corners.map(rdToLatLng), { className: "height-raster-extent", weight: 2 })
+        .bindTooltip(escapeHtml(raster.fileName), { sticky: true })
+        .addTo(this.heightRasterLayer);
+      this.heightRasterPolygons.set(raster.fileName, polygon);
+    }
+  }
+
+  /** Zooms to the extent of the raster with this file name. */
+  zoomToHeightRaster(fileName: string): void {
+    const polygon = this.heightRasterPolygons.get(fileName);
+    if (polygon) this.map.fitBounds(polygon.getBounds(), { padding: [40, 40] });
+  }
+
+  zoomToSoilProfiles(): void {
+    const bounds = this.soilProfileLayer.getBounds();
+    if (bounds.isValid()) this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+  }
+
   /** Draws the named line thicker (e.g. while it is being edited); null clears it. */
   highlightReferenceLine(name: string | null): void {
     for (const [lineName, polyline] of this.referenceLinePolylines) {
@@ -198,6 +258,43 @@ export class MapView {
   // cannot measure a hidden (display: none) element.
   invalidateSize(): void {
     this.map.invalidateSize();
+  }
+
+  // Bottom-right buttons that show or hide the CPT, soil profile and height
+  // raster layers. Their icons use the same CSS as what they toggle.
+  private addLayerToggles(): void {
+    const dot = (markerClass: string) =>
+      `<circle class="leaflet-interactive ${markerClass}" cx="7" cy="7" r="5" stroke-width="2" />`;
+    const toggles: { layer: L.Layer; label: MessageKey; icon: string }[] = [
+      { layer: this.cptLayer, label: "map.toggleCpts", icon: dot("cpt-marker") },
+      { layer: this.soilProfileLayer, label: "map.toggleSoilProfiles", icon: dot("soil-profile-marker") },
+      {
+        layer: this.heightRasterLayer,
+        label: "map.toggleHeightData",
+        icon: `<rect class="leaflet-interactive height-raster-extent" x="2" y="2" width="10" height="10" stroke-width="1.5" />`,
+      },
+    ];
+    const control = new L.Control({ position: "bottomright" });
+    control.onAdd = () => {
+      const panel = L.DomUtil.create("div", "leaflet-bar layer-toggles");
+      L.DomEvent.disableClickPropagation(panel);
+      for (const { layer, label, icon } of toggles) {
+        const button = L.DomUtil.create("button", "layer-toggle", panel);
+        button.type = "button";
+        button.setAttribute("aria-pressed", "true");
+        button.innerHTML =
+          `<svg viewBox="0 0 14 14">${icon}</svg>` +
+          `<span data-i18n="${label}">${escapeHtml(t(label))}</span>`;
+        button.addEventListener("click", () => {
+          const visible = this.map.hasLayer(layer);
+          if (visible) this.map.removeLayer(layer);
+          else this.map.addLayer(layer);
+          button.setAttribute("aria-pressed", String(!visible));
+        });
+      }
+      return panel;
+    };
+    control.addTo(this.map);
   }
 
   private createBasemap(theme: Theme): L.LayerGroup {

@@ -42,6 +42,28 @@ export function formatMetres(value: number): string {
   return t("units.metres", { value: number });
 }
 
+/** Formats a number with exactly `decimals` decimals, without thousands separators. */
+export function formatNumber(value: number, decimals: number): string {
+  return new Intl.NumberFormat(current, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  }).format(value);
+}
+
+/** Formats a byte count, e.g. "850 kB" or "12.3 MB". */
+export function formatBytes(bytes: number): string {
+  const [key, value]: [MessageKey, number] =
+    bytes >= 1e9 ? ["units.gigabytes", bytes / 1e9] : bytes >= 1e6 ? ["units.megabytes", bytes / 1e6] : ["units.kilobytes", bytes / 1e3];
+  const number = new Intl.NumberFormat(current, { maximumFractionDigits: value < 10 ? 1 : 0 }).format(value);
+  return t(key, { value: number });
+}
+
+/** Formats an ISO 8601 moment as a local date and time. */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat(current, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+}
+
 // Fills every element carrying a `data-i18n="key"` attribute with its
 // translated text, sets the tooltip of every `data-i18n-title="key"` element,
 // and sets <html lang>.
