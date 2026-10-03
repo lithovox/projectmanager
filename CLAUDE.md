@@ -18,6 +18,9 @@ map. Run with `npm run dev`; `npm run build` type-checks (`tsc`) and builds.
   `views/` holds the views (e.g. `mapView.ts`). Views receive model objects to
   display and report user actions through callbacks; they don't change the
   model themselves.
+- The left menu (`#sidebar` in `index.html`) folds to a narrow strip
+  (`views/sidebarView.ts`, remembered in browser storage); its contents are
+  in `#sidebar-content`, hidden while folded. Model2D has the same.
 
 ## Conventions
 

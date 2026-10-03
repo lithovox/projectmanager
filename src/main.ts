@@ -7,6 +7,7 @@ import { LoginView } from "./views/loginView";
 import { MapView } from "./views/mapView";
 import { TablesView } from "./views/tablesView";
 import { Scene3DView } from "./views/scene3dView";
+import { SidebarView } from "./views/sidebarView";
 
 type ViewName = "map" | "tables" | "3d";
 const VIEWS: ViewName[] = ["map", "tables", "3d"];
@@ -18,6 +19,7 @@ applyTranslations();
 new AuthController(new LoginView(document.getElementById("login-screen") as HTMLElement));
 
 const mapView = new MapView(document.getElementById("map") as HTMLElement);
+new SidebarView(document.getElementById("sidebar") as HTMLElement, () => mapView.invalidateSize());
 const tablesView = new TablesView(document.getElementById("tables") as HTMLElement);
 const scene3dView = new Scene3DView(document.getElementById("scene3d") as HTMLElement);
 new ProjectController(mapView, tablesView, scene3dView);

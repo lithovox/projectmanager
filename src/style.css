@@ -28,6 +28,7 @@
 
   --topbar-height: 64px;
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 44px;
 }
 
 /* Brand hues (navy/teal/ice) stay put across themes - only the surfaces,
@@ -367,10 +368,55 @@ p {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--bg-card);
   border-right: 1px solid var(--border-color);
   z-index: 10;
+  transition: flex-basis 0.2s ease, padding 0.2s ease;
+}
+
+/* Folded: a narrow strip with only the button to unfold it. */
+.sidebar.collapsed {
+  flex-basis: var(--sidebar-collapsed-width);
+  padding: 12px 8px;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: calc(var(--sidebar-width) - 32px);
+}
+
+.sidebar.collapsed .sidebar-content {
+  display: none;
+}
+
+.sidebar-toggle {
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin: -8px -8px 0 0;
+}
+
+.sidebar-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  align-self: center;
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-toggle svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-toggle svg {
+    transition: none;
+  }
 }
 
 /* A titled group of menu entries. */

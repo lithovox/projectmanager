@@ -4,6 +4,8 @@ export const en = {
   "nav.map": "Map",
   "nav.tables": "Tables",
   "nav.scene3d": "3D",
+  "sidebar.collapse": "Fold the menu",
+  "sidebar.expand": "Unfold the menu",
   "scene3d.verticalExaggeration": "Vertical exaggeration",
   "scene3d.resetView": "Reset view",
   "scene3d.showMap": "Map",
