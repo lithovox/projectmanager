@@ -6,10 +6,15 @@ import { Soil, type SoilData } from "./soil";
 import { SoilProfile, type SoilLayer, type SoilProfileData, type SoilProfileSource } from "./soilProfile";
 import type { MapViewState } from "./views/mapView";
 
-// Saved project file. Bump `version` when the shape changes in a way older
-// files cannot be read as-is.
+/**
+ * Version of the project format: the project file and the exported project
+ * archive (see projectArchive.ts). Raise it when their shape changes.
+ */
+export const PROJECT_VERSION = "0.1";
+
+// Saved project file.
 export interface ProjectFile {
-  version: 1;
+  version: typeof PROJECT_VERSION;
   map: MapViewState;
   referenceLines: ReferenceLineData[];
   cpts: CptData[];
@@ -48,7 +53,8 @@ export function isProjectFile(value: unknown): value is ProjectFile {
   return (
     !!p &&
     typeof p === "object" &&
-    p.version === 1 &&
+    // Projects saved before PROJECT_VERSION existed say 1; they have the same shape as 0.1.
+    (p.version === PROJECT_VERSION || (p.version as unknown) === 1) &&
     isMapViewState(p.map) &&
     // Files saved before reference lines existed have no `referenceLines`.
     (p.referenceLines === undefined ||
@@ -86,7 +92,8 @@ export interface SoilProfileAssignment {
 // CPTs are unique by BRO id, soils by name, and every soil profile layer
 // refers to a soil in the project. A soil profile can be assigned to one
 // reference line; it then has a chainage along that line. At most one
-// profile sits on a line's start and one on its end.
+// profile sits on a line's start and one on its end. A project can be saved
+// at any time, but is only valid once it has a reference line.
 export class Project {
   private lines: ReferenceLine[] = [];
   private cptsById = new Map<string, Cpt>();
@@ -97,6 +104,11 @@ export class Project {
 
   get referenceLines(): readonly ReferenceLine[] {
     return this.lines;
+  }
+
+  /** True once the project has at least one reference line. */
+  get isValid(): boolean {
+    return this.lines.length > 0;
   }
 
   get chainageLine(): ReferenceLine | undefined {
@@ -393,7 +405,7 @@ export class Project {
 
   toFile(map: MapViewState): ProjectFile {
     return {
-      version: 1,
+      version: PROJECT_VERSION,
       map,
       referenceLines: this.lines.map((line) => line.toData()),
       cpts: this.cpts.map((cpt) => cpt.toData()),

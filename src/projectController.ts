@@ -15,7 +15,15 @@ import type { MessageKey } from "./i18n/en";
 import type { SoilProfile } from "./soilProfile";
 import { referenceLineNameError, showReferenceLineDialog } from "./referenceLineDialog";
 import { Project } from "./project";
-import { createProject, deleteProject, fetchHeights, listProjects, type ProjectSummary } from "./projectApi";
+import {
+  createProject,
+  deleteProject,
+  downloadRaster,
+  fetchHeights,
+  listProjects,
+  type ProjectSummary,
+} from "./projectApi";
+import { ArchiveError, readProjectArchive, writeProjectArchive, type ProjectArchive } from "./projectArchive";
 import { showProjectManager } from "./projectManagerDialog";
 import { NotAProjectError, ProjectSync } from "./projectSync";
 import { readShapefileLine } from "./shapefile";
@@ -46,6 +54,7 @@ export class ProjectController {
   private sync = new ProjectSync(this.project);
   private saveButton: HTMLButtonElement;
   private projectName: HTMLElement;
+  private projectInvalid: HTMLElement;
   private saving = false;
   private managerOpen = false;
   /** Email of the user whose project is open, to notice a different user logging in. */
@@ -56,6 +65,12 @@ export class ProjectController {
   private downloadCptsButton: HTMLButtonElement;
   private downloadCptsLabel: HTMLElement;
   private downloadingCpts = false;
+  private exportButton: HTMLButtonElement;
+  private exportLabel: HTMLElement;
+  private importInput: HTMLInputElement;
+  private importLabel: HTMLElement;
+  /** An export or import is running. */
+  private exchanging = false;
   private assignSoilProfilesButton: HTMLButtonElement;
   private resetAssignmentsButton: HTMLButtonElement;
   // Last maximum distance and "Auto Assign" choice, offered again the next time.
@@ -107,6 +122,7 @@ export class ProjectController {
     this.saveButton = document.getElementById("save-project-btn") as HTMLButtonElement;
     this.saveButton.addEventListener("click", () => this.saveProject());
     this.projectName = document.getElementById("project-name")!;
+    this.projectInvalid = document.getElementById("project-invalid")!;
     document.getElementById("new-project-btn")!.addEventListener("click", () => this.openProjectManager(true));
     document.getElementById("load-project-btn")!.addEventListener("click", () => this.openProjectManager());
     window.addEventListener("beforeunload", (e) => {
@@ -122,6 +138,16 @@ export class ProjectController {
     this.resetAssignmentsButton.addEventListener("click", () => {
       this.project.resetSoilProfileAssignments();
       this.refreshViews();
+    });
+    this.exportButton = document.getElementById("export-project-btn") as HTMLButtonElement;
+    this.exportLabel = this.exportButton.querySelector("span")!;
+    this.exportButton.addEventListener("click", () => this.exportProject());
+    this.importInput = document.getElementById("import-project-input") as HTMLInputElement;
+    this.importLabel = document.querySelector<HTMLElement>("#import-project-btn > span")!;
+    this.importInput.addEventListener("change", () => {
+      const file = this.importInput.files?.[0];
+      this.importInput.value = "";
+      if (file) this.importProject(file);
     });
     this.refreshViews();
 
@@ -220,8 +246,10 @@ export class ProjectController {
     if (this.saving || !this.sync.current) return;
     this.saving = true;
     this.updateSaveState();
+    let saved = false;
     try {
       await this.sync.save(this.mapView.getView());
+      saved = true;
     } catch (err) {
       console.error(err);
       window.alert(t("project.saveFailed"));
@@ -229,6 +257,94 @@ export class ProjectController {
       this.saving = false;
       this.refreshViews();
     }
+    // An incomplete project is still saved, so work isn't lost; the user is
+    // only told what is missing.
+    if (saved && !this.project.isValid) window.alert(t("project.savedNotValid"));
+  }
+
+  // Downloads the open project, as it is now (unsaved changes included), as
+  // a .zip file with the GeoTIFFs of its height rasters.
+  private async exportProject(): Promise<void> {
+    const current = this.sync.current;
+    if (this.exchanging || !current) return;
+    this.setExchanging(true, this.exportLabel, "archive.exporting");
+    try {
+      const rasters = new Map<string, Blob>();
+      for (const raster of this.project.heightRasters) {
+        const file = this.sync.pendingRasterFile(raster);
+        if (file) rasters.set(raster.fileName, file);
+        else if (raster.id !== null) rasters.set(raster.fileName, await downloadRaster(current.id, raster.id));
+      }
+      const zip = await writeProjectArchive({
+        name: current.name,
+        file: this.project.toFile(this.mapView.getView()),
+        rasters,
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(zip);
+      // Characters that aren't allowed in file names on some systems.
+      link.download = `${current.name.replace(/[\\/:*?"<>|]+/g, "_")}.zip`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    } catch (err) {
+      console.error(err);
+      window.alert(t("archive.exportFailed"));
+    } finally {
+      this.setExchanging(false, this.exportLabel, "archive.export");
+    }
+  }
+
+  // Imports an exported project as a new project, named as in the export
+  // (with a number added if the user already has a project by that name).
+  // Its contents arrive as unsaved changes; Save stores them.
+  private async importProject(file: File): Promise<void> {
+    if (this.exchanging) return;
+    let archive: ProjectArchive;
+    try {
+      archive = await readProjectArchive(file);
+    } catch (err) {
+      if (!(err instanceof ArchiveError)) console.error(err);
+      window.alert(err instanceof ArchiveError ? err.message : t("archive.importFailed"));
+      return;
+    }
+    if (!this.confirmDiscard()) return;
+
+    this.setExchanging(true, this.importLabel, "archive.importing");
+    try {
+      const summary = await this.createProjectWithFreeName(archive.name);
+      const rasterFiles = new Map(
+        [...archive.rasters].map(([fileName, blob]) => [fileName, new File([blob], fileName, { type: blob.type })]),
+      );
+      const missing = this.sync.openImported(summary, archive.file, rasterFiles);
+      this.refreshViews();
+      this.mapView.setView(archive.file.map);
+      const messages = [t("archive.imported", { name: summary.name })];
+      if (missing.length > 0) messages.push(t("archive.missingRasters", { files: missing.join(", ") }));
+      window.alert(messages.join("\n\n"));
+    } catch (err) {
+      console.error(err);
+      window.alert(t("archive.importFailed"));
+    } finally {
+      this.setExchanging(false, this.importLabel, "archive.import");
+    }
+  }
+
+  /** Creates an empty project named `name`, or "name (2)", "name (3)", … if that is taken. */
+  private async createProjectWithFreeName(name: string): Promise<ProjectSummary> {
+    for (let n = 1; ; n++) {
+      try {
+        return await createProject(n === 1 ? name : `${name} (${n})`);
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 409) || n >= 100) throw err;
+      }
+    }
+  }
+
+  private setExchanging(exchanging: boolean, label: HTMLElement, text: MessageKey): void {
+    this.exchanging = exchanging;
+    label.textContent = t(text);
+    this.importInput.disabled = exchanging;
+    this.updateButtons();
   }
 
   // Finds the BRO CPTs along every reference line, downloads the ones the
@@ -529,7 +645,8 @@ export class ProjectController {
     this.updateButtons();
   }
 
-  // Shows the open project's name and highlights Save while there are unsaved changes.
+  // Shows the open project's name, highlights Save while there are unsaved
+  // changes and marks a project that isn't valid yet.
   private updateSaveState(): void {
     const dirty = this.sync.isDirty;
     this.saveButton.disabled = this.saving || !this.sync.current;
@@ -538,6 +655,8 @@ export class ProjectController {
     this.saveButton.title = t(this.saving ? "project.saving" : dirty ? "project.saveUnsaved" : "project.save");
     this.projectName.textContent = this.sync.current?.name ?? "";
     this.projectName.classList.toggle("unsaved", dirty);
+    // Follows the project as it is now, saved or not.
+    this.projectInvalid.hidden = !this.sync.current || this.project.isValid;
   }
 
   private updateButtons(): void {
@@ -546,5 +665,6 @@ export class ProjectController {
     this.assignSoilProfilesButton.disabled =
       this.project.referenceLines.length === 0 || this.project.soilProfiles.length === 0;
     this.downloadCptsButton.disabled = this.downloadingCpts || this.project.referenceLines.length === 0;
+    this.exportButton.disabled = this.exchanging || !this.sync.current;
   }
 }

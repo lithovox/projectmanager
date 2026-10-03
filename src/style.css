@@ -634,6 +634,33 @@ p {
   color: var(--danger-color);
 }
 
+/* "Not valid" label: next to the project name and in the project list. */
+.invalid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--danger-bg);
+  color: var(--danger-color);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.invalid-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.invalid-badge[hidden] {
+  display: none;
+}
+
 .toolbar-btn.unsaved {
   position: relative;
   background: var(--color-teal-soft);

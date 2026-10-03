@@ -17,6 +17,8 @@ export interface ProjectSummary {
   rasterCount: number;
   /** Total size of the project's height raster files (bytes). */
   rasterSize: number;
+  /** Whether the project was valid (see Project.isValid) when it was last saved. */
+  isValid: boolean;
 }
 
 interface ProjectSummaryResponse {
@@ -28,6 +30,7 @@ interface ProjectSummaryResponse {
   compressed_size: number;
   raster_count: number;
   raster_size: number;
+  is_valid: boolean;
 }
 
 /** A height raster file stored for a project. */
@@ -46,6 +49,7 @@ function toSummary(p: ProjectSummaryResponse): ProjectSummary {
     compressedSize: p.compressed_size,
     rasterCount: p.raster_count,
     rasterSize: p.raster_size,
+    isValid: p.is_valid,
   };
 }
 
@@ -69,9 +73,9 @@ export async function fetchProjectData(id: string): Promise<unknown> {
   return response.json();
 }
 
-/** Replaces the stored project file. */
-export async function saveProjectData(id: string, data: unknown): Promise<ProjectSummary> {
-  const response = await apiJson(projectPath(id), "PUT", { data });
+/** Replaces the stored project file and records whether the project is valid. */
+export async function saveProjectData(id: string, data: unknown, isValid: boolean): Promise<ProjectSummary> {
+  const response = await apiJson(projectPath(id), "PUT", { data, is_valid: isValid });
   return toSummary((await response.json()) as ProjectSummaryResponse);
 }
 
@@ -98,6 +102,12 @@ export async function uploadRaster(projectId: string, raster: HeightRaster, file
   form.append("height", String(raster.height));
   const response = await apiFetch(`${projectPath(projectId)}/rasters`, { method: "POST", body: form });
   return ((await response.json()) as { id: string }).id;
+}
+
+/** The stored GeoTIFF of a raster. */
+export async function downloadRaster(projectId: string, rasterId: string): Promise<Blob> {
+  const response = await apiFetch(`${projectPath(projectId)}/rasters/${encodeURIComponent(rasterId)}`);
+  return response.blob();
 }
 
 export async function deleteRaster(projectId: string, rasterId: string): Promise<void> {

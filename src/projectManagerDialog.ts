@@ -70,6 +70,9 @@ export function showProjectManager(options: ProjectManagerOptions): Promise<void
           `<tr data-index="${index}"${isOpen ? ' class="current"' : ""}>` +
           `<td><span class="project-manager-name">${escapeHtml(p.name)}</span>` +
           (isOpen ? ` <span class="table-count">${escapeHtml(t("projectManager.openBadge"))}</span>` : "") +
+          (p.isValid
+            ? ""
+            : ` <span class="invalid-badge" title="${escapeHtml(t("project.notValidHint"))}">${escapeHtml(t("project.notValid"))}</span>`) +
           `</td>` +
           `<td>${escapeHtml(formatDateTime(p.updatedAt))}</td>` +
           `<td class="numeric" title="${escapeHtml(

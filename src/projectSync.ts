@@ -71,6 +71,32 @@ export class ProjectSync {
     return isProjectFile(data) ? data.map : null;
   }
 
+  /**
+   * Fills the open project `summary`, which must have just been created (so
+   * it is still empty in the database), with an imported project file, as
+   * unsaved changes: Save stores it, uploading the rasters' GeoTIFFs. Raster
+   * ids from the file are dropped (they belong to another database), and
+   * rasters without a GeoTIFF in `rasterFiles` (by file name) are left out;
+   * returns their file names.
+   */
+  openImported(summary: ProjectSummary, file: ProjectFile, rasterFiles: ReadonlyMap<string, File>): string[] {
+    this.project.clear();
+    this._current = summary;
+    this.rasterFiles.clear();
+    this.savedSnapshot = this.snapshot();
+    this.project.loadFile({ ...file, heightRasters: (file.heightRasters ?? []).map((raster) => ({ ...raster, id: undefined })) });
+    const missing: string[] = [];
+    for (const raster of [...this.project.heightRasters]) {
+      const rasterFile = rasterFiles.get(raster.fileName);
+      if (rasterFile) this.rasterFiles.set(raster, rasterFile);
+      else {
+        this.project.removeHeightRaster(raster);
+        missing.push(raster.fileName);
+      }
+    }
+    return missing;
+  }
+
   /** Closes the open project (e.g. after deleting it) and empties the Project. */
   close(): void {
     this.project.clear();
@@ -97,7 +123,7 @@ export class ProjectSync {
     }
 
     const file = this.project.toFile(map);
-    this._current = await projectApi.saveProjectData(id, file);
+    this._current = await projectApi.saveProjectData(id, file, this.project.isValid);
     this.savedSnapshot = snapshotOf(file);
 
     const used = new Set(file.heightRasters.map((raster) => raster.id));
